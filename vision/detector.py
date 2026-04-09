@@ -1,19 +1,19 @@
-import cv2
-import numpy as np
+from ultralytics import YOLO
+
+modelo = YOLO("yolov8n.pt")  # modelo ligero
 
 def detectar_objetivos(frame):
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    resultados = modelo(frame, verbose=False)
 
-    # Ajusta según tu objetivo real
-    lower = np.array([0, 120, 70])
-    upper = np.array([10, 255, 255])
+    detecciones = []
 
-    mask = cv2.inRange(hsv, lower, upper)
+    for r in resultados:
+        for box in r.boxes:
+            x1, y1, x2, y2 = map(int, box.xyxy[0])
 
-    # Reducir ruido
-    kernel = np.ones((5, 5), np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+            cx = (x1 + x2) // 2
+            cy = (y1 + y2) // 2
 
-    contornos, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+            detecciones.append((x1, y1, x2, y2, cx, cy))
 
-    return contornos
+    return detecciones

@@ -1,10 +1,9 @@
 import cv2
 from vision.screencap import capturar_ventana
 from vision.detector import detectar_objetivos
-from vision.tracker import obtener_centro
 from vision.multitracker import MultiTracker
 
-NOMBRE_VENTANA = "Brave"  # Cambia esto por el nombre de tu ventana
+NOMBRE_VENTANA = "Brave"
 
 tracker = MultiTracker()
 
@@ -15,20 +14,17 @@ while True:
         print("Esperando ventana...")
         continue
 
-    contornos = detectar_objetivos(frame)
+    detecciones_raw = detectar_objetivos(frame)
 
     detecciones = []
 
-    for cnt in contornos:
-        area = cv2.contourArea(cnt)
+    # Procesar detecciones
+    for x1, y1, x2, y2, cx, cy in detecciones_raw:
+        detecciones.append((cx, cy))
 
-        if area > 150:
-            x, y, w, h, cx, cy = obtener_centro(cnt)
+        cv2.rectangle(frame, (x1, y1), (x2, y2), (0,255,0), 2)
 
-            detecciones.append((cx, cy))
-
-            cv2.rectangle(frame, (x, y), (x+w, y+h), (0,255,0), 2)
-
+    # Tracking
     objetos = tracker.actualizar(detecciones)
 
     for obj_id, (cx, cy) in objetos.items():
