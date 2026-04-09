@@ -1,19 +1,38 @@
-from ultralytics import YOLO
+import cv2
 
-modelo = YOLO("yolov8n.pt")  # modelo ligero
+# Inicializar sustractor de fondo
+fgbg = cv2.createBackgroundSubtractorMOG2(
+    history=100,
+    varThreshold=50,
+    detectShadows=False
+)
 
 def detectar_objetivos(frame):
-    resultados = modelo(frame, verbose=False)
+    # Aplicar sustracción de fondo
+    mask = fgbg.apply(frame)
+
+    # Limpiar ruido
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    mask = cv2.dilate(mask, kernel, iterations=2)
+
+    # Encontrar contornos
+    contornos, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     detecciones = []
 
-    for r in resultados:
-        for box in r.boxes:
-            x1, y1, x2, y2 = map(int, box.xyxy[0])
+    for cnt in contornos:
+        area = cv2.contourArea(cnt)
 
-            cx = (x1 + x2) // 2
-            cy = (y1 + y2) // 2
+        # Filtrar ruido
+        if area < 500:
+            continue
 
-            detecciones.append((x1, y1, x2, y2, cx, cy))
+        x, y, w, h = cv2.boundingRect(cnt)
+
+        cx = x + w // 2
+        cy = y + h // 2
+
+        detecciones.append((x, y, x+w, y+h, cx, cy))
 
     return detecciones
